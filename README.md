@@ -1,3 +1,4 @@
+# Non-Convex Exact Community Recovery in Stochastic Block Model
 
 This folder contains the MATLAB source codes for the implementation of all the experiments in the paper,
 

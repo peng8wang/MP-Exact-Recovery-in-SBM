@@ -22,7 +22,7 @@ This package contains 3 experimental tests to output the results in the paper:
 * In the folder named convergence-performance, we conduct the experiments of convergence performance to test the number of iterations needed by our approach
 PPM to exactly identify the underlying communities. For comparison, we also test the convergence performance of MGD, which is an iterative algorithm that has similar per-iteration
 cost to our method.
-  - convergence_demo.m: Output the convergence performance of our methods and MGD
+  - convergence_demo.m: Output the convergence performance of our method PPM and MGD
 
 * In the folder named computational-efficiency, we compare the computational efficiency of our proposed method with GPM, MGD, SDP, and SC on both synthetic and real data sets. 
   - test_synthetic.m: Output the results on synthetic data sets

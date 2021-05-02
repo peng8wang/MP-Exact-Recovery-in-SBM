@@ -1,6 +1,6 @@
 # Non-Convex Exact Community Recovery in Stochastic Block Model
 
-This folder contains the MATLAB source codes for the implementation of all the experiments in the paper,
+This folder contains the MATLAB source codes for the implementation of all the experiments in the paper
 
 "Non-Convex Exact Community Recovery in Stochastic Block Model" (Submitted to Mathematical Programming)
 By Peng Wang, Zirui Zhou, Anthony Man-Cho So.

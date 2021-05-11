@@ -25,7 +25,7 @@ cost to our method.
   - convergence_demo.m: Output the convergence performance of our method PPM and MGD
 
 * In the folder named computational-efficiency, we compare the computational efficiency of our proposed method with GPM, MGD, SDP, and SC on both synthetic and real data sets. 
-  - GPM.m: Implement two-stage method consisting of power iterations (PIs) + generalized power iterations (GPIs); see Wang et al. (2020). 
+  - GPM.m: Implement the two-stage method consisting of power iterations (PIs) + generalized power iterations (GPIs) in Wang et al. (2020). 
   - test_synthetic.m: Output the results on synthetic data sets
   - test_polbooks.m: Output the results on real data set polbooks
   - test_polblogs.m: Output the results on real data set polblogs

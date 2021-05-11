@@ -21,7 +21,10 @@ nna = length(arange); nnb = length(brange);
 [ttime_PPM, ttime_MGD, ttime_SC, ttime_SDP] = deal(0);  %%% record total running time
 
 %% choose the running algorithm
-run_SDP = 0; run_MGD = 0; run_SC = 1; run_PPM = 1;
+run_SDP = 1; run_MGD = 1; run_SC = 1; run_PPM = 1;
+
+%% with and without self-loops
+self_loops = 1; %%% 1 = self-loops; 0 = no self-loops
 
 for iter1 = 1:nna      %%% choose alpha
     
@@ -44,8 +47,11 @@ for iter1 = 1:nna      %%% choose alpha
                 As22 = Al22 + Al22' + diag(diag(Ans22));
                 A22 = double(As22<=p);
                 A = ([A11,A12;A12',A22]); 
+                if self_loops == 0
+                    A = A - diag(diag(A));
+                end
                 A = sparse(A);
-
+                                
                 %% choose the initial point
                 Q = randn(n,2); Q0 = Q*(Q'*Q)^(-0.5);
                 
@@ -78,13 +84,13 @@ for iter1 = 1:nna      %%% choose alpha
                 %% ADMM for SDP
                 if run_SDP == 1
                         X0 = Q0*Q0';
-                        opts = struct('rho', 0.5, 'T', maxiter, 'tol', 1e-1, 'quiet', true, ...
+                        opts = struct('rho', 1, 'T', maxiter, 'tol', 1e-1, 'quiet', true, ...
                                 'report_interval', report_interval, 'total_time', total_time);
-                        tic; [X_SDP, val_collector_SDP] = sdp_admm1(A, X0, 2, opts); time_SDP = toc;
+                        tic; [X_SDP, val_collector_SDP] = sdp_admm1(A, Xt, X0, 2, opts); time_SDP = toc;
                         ttime_SDP = ttime_SDP + time_SDP;
-                        Xt1 = Xt; Xt1(Xt1 == -1) = 0; 
+                        Ht = [ones(m,1) zeros(m,1); zeros(m,1) ones(m,1)]; 
                         X_SDP(X_SDP >= 0.5) = 1; X_SDP(X_SDP < 0.5) = 0;
-                        dist_SDP =  norm(X_SDP-Xt1, 'fro');
+                        dist_SDP =  sqrt(n^2 - 2*trace(Ht'*X_SDP*Ht));
                         if dist_SDP <= 1e-3
                                 succ_SDP = succ_SDP + 1;
                         end

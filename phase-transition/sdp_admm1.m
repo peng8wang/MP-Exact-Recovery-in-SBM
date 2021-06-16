@@ -1,5 +1,5 @@
 
-function [X, delta, Y, T_term] = sdp_admm1(As, X0, K, opts)
+function [X, delta, Y, T_term] = sdp_admm1(As, Xt, X0, K, opts)
 
 %% SDP_ADMM1 implements SDP-1 by an ADMM algorithm
 
@@ -73,7 +73,7 @@ while ~CONVERGED && (t <= T)
     Z = max(X+U,0);
     if r < inf
         % tic, Y = projSp(X+V,r,1e-3); dt(3)=toc;
-        Y = projSp(X+V,r,1e-3);
+        Y = projSp(X+V, r, 1e-3);
     else
         % tic, Y = projSp(X+V); dt(3)=toc;
         Y = projSp(X+V);
@@ -91,6 +91,13 @@ while ~CONVERGED && (t <= T)
     end
     
     t = t + 1;
+    
+%     X1 = X; X1(X1>=0.5) = 1; X1(X1<0.5) = 0; X1 = sparse(X1);
+%     
+%     if sqrt(2*n^2/K-2*trace(X1'*Xt)) < tol
+%         break;
+%     end
+    
     time = toc;
     if time >= 1800
         break;
@@ -127,3 +134,4 @@ end
 function z = Ac(X,n)
     z = [2*(X-diag(diag(X)))*ones(n,1); diag(X)];
 end
+

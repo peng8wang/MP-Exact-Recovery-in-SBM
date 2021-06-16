@@ -1,6 +1,6 @@
 
 
-function [Q, iter, fval_collector] = manifold_GD(A, Q, opts)
+function [Q, iter] = manifold_GD(A, Q, opts)
 
         %%  MGD solves the MFO in Bandeira et al. (2016)
         % --- INPUT ---
@@ -65,10 +65,8 @@ function [Q, iter, fval_collector] = manifold_GD(A, Q, opts)
           
                %% print and record information 
                 if mod(iter,report_interval) == 0 && print == 1            
-                    fprintf('iternum: %2d, grad_norm: %8.4e, fval: %.3f, stepsize: %.4f \n', iter, norm(projgrad), fnew, stepsize) 
+                    fprintf('iternum: %2d, grad_norm: %8.4e, stepsize: %.4f \n', iter, norm(projgrad), stepsize) 
                 end
-
-                fval_collector(iter+1) = fnew; 
                 
                %%   stopping criterion
                 if norm(projgrad) <= tol 

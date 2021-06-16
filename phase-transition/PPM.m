@@ -1,6 +1,6 @@
 
 
-function [x, iter, fval_collector] = PPM(A, Q, opts)
+function [x, iter] = PPM(A, Q, opts)
 
        %%  PPM solves MLE
         % --- INPUT ---
@@ -31,21 +31,15 @@ function [x, iter, fval_collector] = PPM(A, Q, opts)
             print = 0;
         end
         n = size(A, 1);
-        y = Q(:,2) - ones(n,1)'*Q(:,2)*ones(n,1)/n; x = sqrt(n)*y/norm(y);        
-        Ax = A*x; fval = -x'*Ax;  %%% compute function value
-        fval_collector(1) = fval;  
+        y = Q(:,2); x = sqrt(n)*y/norm(y);        
+        Ax = A*x; 
         
-        for iter = 1:maxiter
-                 
-                xold = x;
-                
-               %% Check fixed-point condition
-                x1 = x + Ax; [~, inx] = sort(x1); x1 = ones(n,1);
-                inxp = inx(1:n/2); x1(inxp) = -1; 
-                dist = norm(x - x1);
+        for iter = 1:maxiter                               
+
+               x_old = x;
 
                %% update of OI + PPM               
-                if iter <= floor(0.5*log(n)/log(log(n)))
+                if iter <= floor(0.2*log(n)/log(log(n)))
                %% orthogonal iteration with Ritz acceleration
                        [Q, ~] = qr(A*Q, 0); %% qr decomposition
                        [U, ~] = eig(Q'*A*Q); %% Ritz acceleration
@@ -58,20 +52,17 @@ function [x, iter, fval_collector] = PPM(A, Q, opts)
                        inxp = inx(1:n/2); x(inxp) = -1;                       
                 end
                 
-                Ax = A*x; fval = -x'*Ax; 
+                Ax = A*x;
                 
                %% print and record information                                              
                 if mod(iter, report_interval) == 0 && print == 1            
-                    fprintf('iternum: %2d, suboptimality: %8.4e, fval: %.3f \n', iter, dist, fval) 
+                    fprintf('iternum: %2d, suboptimality: %8.4e\n', iter, dist) 
+                end                             
+                
+               %%  stopping criterion             
+                if norm(x-x_old) <= tol
+                    break;
                 end
-                                
-                fval_collector(iter+1) = fval; 
-                
-               %%  stopping criterion
-                if dist <= tol && norm(x-xold) == 0 
-                        break;
-                end                
-                
         end
         
 

@@ -2,13 +2,13 @@
 clearvars; clc;
 
 %% basic setting
-n = 300;      %%%  n = the number of nodes
-K = 2;        %%% K = the number of blocks
-m = n/K;      %%% m = the block size
+n = 300;      %%% n = the number of nodes
+K = 2;        %%% K = the number of communities
+m = n/K;      %%% m = the community size
 nnt = 40;     %%% the number of repeating the trials for fixed alpha, beta
 
 %% ground truth 
-Xt =  kron(eye(K), ones(m)); 
+Xt = kron(eye(K), ones(m)); 
 Xt(Xt==0)=-1;                           %%% Xt = the true cluster matrix
 xt = [ones(m,1); -ones(m,1)];           %%%  xt = the true cluster vector
 
@@ -17,14 +17,14 @@ arange = 0:0.5:30; brange = 0:0.4:10; arange(1) = 0.01;
 nna = length(arange); nnb = length(brange);
 
 %% record information
-[prob_SDP, prob_MGD, prob_SC, prob_PPM]  = deal(zeros(nna,nnb));  %%% record ratio of exact recovery
-[ttime_PPM, ttime_MGD, ttime_SC, ttime_SDP] = deal(0);  %%% record total running time
+[prob_SDP, prob_MGD, prob_SC, prob_GPM, prob_PPM]  = deal(zeros(nna,nnb));  %%% record ratio of exact recovery
+[ttime_PPM, ttime_MGD, ttime_SC, ttime_GPM, ttime_SDP] = deal(0);  %%% record total running time
 
 %% choose the running algorithm
-run_SDP = 1; run_MGD = 1; run_SC = 1; run_PPM = 1;
+run_SDP = 0; run_MGD = 0; run_SC = 0; run_GPM = 1; run_PPM = 1;
 
 %% with and without self-loops
-self_loops = 1; %%% 1 = self-loops; 0 = no self-loops
+self_loops = 0; %%% 1 = self-loops; 0 = no self-loops
 
 for iter1 = 1:nna      %%% choose alpha
     
@@ -34,7 +34,7 @@ for iter1 = 1:nna      %%% choose alpha
             
         b = brange(iter2); 
         p = a*log(n)/n; q=b*log(n)/n; %%% p: the inner connecting probability; q: the outer connecting probability;           
-        [succ_FW, succ_SDP, succ_MGD, succ_SC, succ_PPM] = deal(0);
+        [succ_FW, succ_SDP, succ_MGD, succ_SC, succ_GPM, succ_PPM] = deal(0);
 
         for iter3 = 1:nnt %%% the number of repeating the trials 
 
@@ -56,23 +56,34 @@ for iter1 = 1:nna      %%% choose alpha
                 Q = randn(n,2); Q0 = Q*(Q'*Q)^(-0.5);
                 
                 %% set the parameters in the running methods
-                maxiter = 50; tol = 1e-5; report_interval = 1e2; total_time = 1e3;
+                maxiter = 50; tol = 1e-3; report_interval = 1e2; total_time = 1e3;
                 
                 %% PPM for MLE
                 if run_PPM == 1
                         opts = struct('T', 20, 'tol', tol, 'report_interval', report_interval, 'total_time', total_time);
-                        tic; [x_PPM, iter_PPM, val_collector_PPM] = PPM(A, Q0, opts); time_PPM=toc;
+                        tic; [x_PPM, iter_PPM] = PPM(A, Q0, opts); time_PPM=toc;
                         ttime_PPM = ttime_PPM + time_PPM;
                         dist_PPM =  min(norm(x_PPM-xt), norm(x_PPM+xt));
                         if dist_PPM <= 1e-3
                                 succ_PPM = succ_PPM + 1;
                         end
                 end
-
-                %% Manifold Gradient Descent
+                
+                %% GPM for regularized MLE
+                if run_GPM == 1
+                        opts = struct('T', 20, 'rho', sum(sum(A))/n^2, 'tol', tol, 'report_interval', report_interval, 'total_time', total_time);
+                        tic; [x_GPM, iter_GPM] = GPM(A, Q0, opts); time_GPM=toc;
+                        ttime_GPM = ttime_GPM + time_GPM;
+                        dist_GPM =  min(norm(x_GPM-xt), norm(x_GPM+xt));
+                        if dist_GPM <= 1e-3
+                                succ_GPM = succ_GPM + 1;
+                        end
+                end
+                
+                %% Manifold Gradient Descent (MGD)
                 if run_MGD == 1
                         opts = struct('rho', (p+q)/2, 'T', maxiter, 'tol', tol,'report_interval', report_interval, 'total_time', total_time);                
-                        tic; [Q, iter_MGD, val_collector_MGD] = manifold_GD(A, Q0, opts); time_MGD=toc;
+                        tic; [Q, iter_MGD] = manifold_GD(A, Q0, opts); time_MGD=toc;
                         ttime_MGD = ttime_MGD + time_MGD;
                         X_MGD = Q*Q';
                         dist_MGD =  norm(X_MGD-Xt, 'fro');
@@ -86,7 +97,7 @@ for iter1 = 1:nna      %%% choose alpha
                         X0 = Q0*Q0';
                         opts = struct('rho', 1, 'T', maxiter, 'tol', 1e-1, 'quiet', true, ...
                                 'report_interval', report_interval, 'total_time', total_time);
-                        tic; [X_SDP, val_collector_SDP] = sdp_admm1(A, Xt, X0, 2, opts); time_SDP = toc;
+                        tic; X_SDP = sdp_admm1(A, Xt, X0, 2, opts); time_SDP = toc;
                         ttime_SDP = ttime_SDP + time_SDP;
                         Ht = [ones(m,1) zeros(m,1); zeros(m,1) ones(m,1)]; 
                         X_SDP(X_SDP >= 0.5) = 1; X_SDP(X_SDP < 0.5) = 0;
@@ -104,12 +115,13 @@ for iter1 = 1:nna      %%% choose alpha
                     if dist_SC <= 1e-3
                                 succ_SC = succ_SC + 1;
                     end
-                end
+                 end
 
                 fprintf('Outer iter: %d, Inner iter: %d,  Repated Num: %d \n', iter1, iter2, iter3);
         end
 
         prob_PPM(iter1, iter2) = succ_PPM/nnt;
+        prob_GPM(iter1, iter2) = succ_GPM/nnt;
         prob_SDP(iter1, iter2) = succ_SDP/nnt;
         prob_MGD(iter1, iter2) = succ_MGD/nnt;
         prob_SC(iter1, iter2) = succ_SC/nnt;
@@ -125,7 +137,17 @@ if run_PPM == 1
     axis on; set(gca,'YDir','normal'); hold on; 
     fimplicit(f,[0 10 0 30], 'LineWidth', 1.5, 'color', 'r');
     daspect([1 3 1]);
-    xlabel('\beta', 'LineWidth', 4); ylabel('\alpha', 'LineWidth', 4); title('PPM');
+    set(gca,'FontSize', 12, 'FontWeight','bold');
+    xlabel('\beta', 'FontSize', 16); ylabel('\alpha', 'FontSize', 16); title('PPM');
+end
+
+if run_GPM == 1
+    figure(); imshow(prob_GPM, 'InitialMagnification','fit','XData',[0 10],'YData',[0 30]); colorbar; 
+    axis on; set(gca,'YDir','normal'); hold on; 
+    fimplicit(f,[0 10 0 30], 'LineWidth', 1.5, 'color', 'r');
+    daspect([1 3 1]);
+    set(gca,'FontSize', 12, 'FontWeight','bold');
+    xlabel('\beta', 'FontSize', 16); ylabel('\alpha', 'FontSize', 16); title('GPM');
 end
 
 if run_SC == 1
@@ -134,7 +156,8 @@ if run_SC == 1
     axis on; set(gca,'YDir','normal'); hold on; 
     fimplicit(f,[0 10 0 30], 'LineWidth', 1.5, 'color', 'r');
     daspect([1 3 1]);
-    xlabel('\beta', 'LineWidth', 4); ylabel('\alpha', 'LineWidth', 4); title('SC');
+    set(gca,'FontSize', 12, 'FontWeight','bold');
+    xlabel('\beta', 'FontSize', 16); ylabel('\alpha', 'FontSize', 16); title('SC');
 end
 
 if run_SDP == 1
@@ -143,7 +166,8 @@ if run_SDP == 1
     axis on; set(gca,'YDir','normal'); hold on; 
     fimplicit(f,[0 10 0 30], 'LineWidth', 1.5, 'color', 'r');
     daspect([1 3 1]);
-    xlabel('\beta', 'LineWidth', 4); ylabel('\alpha', 'LineWidth', 4); title('SDP');
+    set(gca,'FontSize', 12, 'FontWeight','bold');
+    xlabel('\beta', 'FontSize', 16); ylabel('\alpha', 'FontSize', 16); title('SDP');
 end
 
 if run_MGD == 1
@@ -151,6 +175,8 @@ if run_MGD == 1
     imshow(prob_MGD, 'InitialMagnification','fit','XData',[0 10],'YData',[0 30]); colorbar; 
     axis on; set(gca,'YDir','normal'); hold on; 
     fimplicit(f,[0 10 0 30], 'LineWidth', 1.5, 'color', 'r'); daspect([1 3 1]);
-    xlabel('\beta', 'LineWidth', 4); ylabel('\alpha', 'LineWidth', 4); title('MGD');
+    set(gca,'FontSize', 12, 'FontWeight','bold');
+    xlabel('\beta', 'FontSize', 16); ylabel('\alpha', 'FontSize', 16); title('MGD');
 end
+
 

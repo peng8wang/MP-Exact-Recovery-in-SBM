@@ -1,6 +1,6 @@
 
 
-function [x, iter, fval_collector, dist_iter] = PPM(A, Q, xt, opts)
+function [x, iter, dist_iter] = PPM(A, Q, xt, opts)
 
         %%  PPM for the MLE
         % --- INPUT ---
@@ -34,8 +34,7 @@ function [x, iter, fval_collector, dist_iter] = PPM(A, Q, xt, opts)
         end
         n = size(A, 1);
         y = Q(:,2) - ones(n,1)'*Q(:,2)*ones(n,1)/n; x = sqrt(n)*y/norm(y);
-        Ax = sqrt(n)*A*x; fval = -x'*Ax;  %%% compute function value
-        fval_collector(1) = fval;  
+        Ax = sqrt(n)*A*x; 
         dist_iter(1) = sqrt(2*n^2-2*(x'*xt)^2); %%% compute distance to ground truth || x*x^T - xt*xt^T||_F
         
         for iter = 1:maxiter
@@ -45,28 +44,27 @@ function [x, iter, fval_collector, dist_iter] = PPM(A, Q, xt, opts)
                 inxp = inx(1:n/2); x1(inxp) = -1; 
                 dist = norm(x - x1);
 
-               %% update of OI + PPI               
+               %% update of OI + PPM               
                 if iter <= floor(log(n)/log(log(n)))
-               %% orthogonal iteration (OI) with Ritz acceleration
+               %% orthogonal iteration with Ritz acceleration
                        [Q, ~] = qr(A*Q, 0);  %% qr decomposition
                        [U, ~] = eig(Q'*A*Q); %% Ritz acceleration
                        Q = Q*U;
                        y = Q(:,2) - ones(n,1)'*Q(:,2)*ones(n,1)/n;
                        x = sqrt(n) * y/norm(y);
                 else     
-               %% projected power iteration (PPI)
+               %% projected power iteration
                        [~, inx] = sort(Ax); x = ones(n,1); 
                        inxp = inx(1:n/2); x(inxp) = -1;                       
                 end
                 
-                Ax = A*x; fval = -x'*Ax; 
+                Ax = A*x;
                 
                %% print and record information
                 if mod(iter, report_interval) == 0 && print == 1            
-                    fprintf('iternum: %2d, suboptimality: %8.4e, fval: %.3f \n', iter, dist, fval) 
+                    fprintf('iternum: %2d, suboptimality: %8.4e \n', iter, dist) 
                 end
-                                
-                fval_collector(iter+1) = fval; 
+                               
                 dist_iter(iter+1) = sqrt(2*n^2 - 2*(x'*xt)^2);
                 
                %%  stopping criterion

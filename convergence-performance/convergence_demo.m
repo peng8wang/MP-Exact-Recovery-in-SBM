@@ -10,8 +10,8 @@ m = n/K;    %%% m = the community size
 Xt =  kron(eye(K), ones(m)); Xt(Xt==0)=-1; %%% Xt = the true cluster matrix
 xt = [ones(m,1); -ones(m,1)];              %%% xt = the true cluster vector
 
-%% generate an adjacency matrix A by Binary SBM
-b = 16;     %%%  choose the constants beta in q
+%%  choose the constants beta in q
+b = 4;
 
 %% choose the running algorithm
 run_PPM = 1; run_MGD = 1; run_GPM = 0; %%% 1 = run the method; 0 = don't run the method
@@ -22,6 +22,7 @@ self_loops = 0; %%% 1 = self_loops; 0 = no self_loops
 
 for repeat = 1:5 %%%% 
             
+            %% generate an adjacency matrix A by Binary SBM
             a = (sqrt(b)+sqrt(2))^2 + repeat;  %%%  choose the constants alpha in p
             p = a*log(n)/n;       %%%  p = the within-cluster connecting probability
             q = b*log(n)/n;       %%%  q = the across-cluster connecting probability       
@@ -49,7 +50,7 @@ for repeat = 1:5 %%%%
             if run_PPM == 1
                 opts = struct('T', maxiter, 'tol', tol, 'report_interval', report_interval,...
                     'total_time', total_time, 'print', print); 
-                tic; [x_PPM, iter_PPM, fval_collector_PPM, itergap_PPM] = PPM(A, Q0, xt, opts); time_PPM=toc; 
+                tic; [x_PPM, iter_PPM, itergap_PPM] = PPM(A, Q0, xt, opts); time_PPM=toc; 
                 ttime_PPM = ttime_PPM + time_PPM;
                 dist_PPM = norm(x_PPM*x_PPM'-Xt, 'fro');
             end
@@ -59,7 +60,7 @@ for repeat = 1:5 %%%%
                 rho = sum(sum(A))/n^2; x0 = sqrt(n)*Q0(:,2);
                 opts = struct('T', maxiter, 'rho', rho, 'tol', tol, 'report_interval', report_interval,...
                     'total_time', total_time, 'print', print); 
-                tic; [x_GPM, iter_GPM, fval_collector_GPM, itergap_GPM] = GPM(A, x0, xt, opts); time_GPM=toc; 
+                tic; [x_GPM, iter_GPM, itergap_GPM] = GPM(A, Q0, xt, opts); time_GPM=toc; 
                 ttime_GPM = ttime_GPM + time_GPM;
                 dist_GPM = norm(x_GPM*x_GPM'-Xt, 'fro');
             end 
@@ -70,7 +71,7 @@ for repeat = 1:5 %%%%
                 rho = (p+q)/2;
                 opts = struct('rho', rho, 'T', maxiter, 'tol', tol, 'report_interval', report_interval,...
                     'total_time', total_time, 'print', print);                
-                tic; [Q, iter_MGD, fval_collector_MGD, itergap_MGD] = manifold_GD(A, Q0, xt, opts); time_MGD=toc;
+                tic; [Q, iter_MGD, itergap_MGD] = manifold_GD(A, Q0, xt, opts); time_MGD=toc;
                 ttime_MGD = ttime_MGD + time_MGD;
                 dist_MGD =  norm(Q*Q'-Xt, 'fro');
             end
@@ -107,21 +108,24 @@ for repeat = 1:5 %%%%
             max_iter_MGD = max(iter_MGD,max_iter_MGD);
 
 end 
-legend('show');
-xlim([0, round(max_iter_MGD*1.05)]); 
+legend('show', 'FontSize', 10);
+xlim([0, round(max_iter_MGD*1.2)]); 
+
+% font_size = 12;
 
 if b == 2
     ylim([1e-8, 1e4]); title('\beta = 2'); 
 elseif b == 4
-    ylim([1e-8, 1e5]); title('\beta = 4');
+    ylim([1e-8, 1e4]); % title('\beta = 4');
 elseif b == 8
-    ylim([1e-8, 1e5]); title('\beta = 8');
+    ylim([1e-8, 1e4]); % title('\beta = 8');
 elseif b == 16
-    ylim([1e-8, 1e5]); title('\beta = 16');
+    ylim([1e-8, 1e4]); % title('\beta = 16');
 else
     ylim([1e-8, 1e5]); title('\beta = 32');
 end
 
-xlabel('Iterations'); ylabel('distance to ground truth');
+set(gca,'FontSize', 11); % 'FontWeight', 'Bold')
+xlabel('Iterations'); ylabel('Distance to ground truth');
 
 

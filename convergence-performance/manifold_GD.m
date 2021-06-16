@@ -1,6 +1,6 @@
 
 
-function [Q, iter, fval_collector, dist_iter] = manifold_GD(A, Q, xt, opts)
+function [Q, iter, dist_iter] = manifold_GD(A, Q, xt, opts)
 
         %%  MGD solves MFO in Bandeira et al. (2016)
         % --- INPUT ---
@@ -37,7 +37,6 @@ function [Q, iter, fval_collector, dist_iter] = manifold_GD(A, Q, xt, opts)
         n = size(A, 1); 
         eta = 2; sigma = 0.4; %%% line search parameters        
         fnew = -trace(Q'*A*Q) + rho*norm(Q'*ones(n,1))^2; %%% compute function value
-        fval_collector(1) = fnew; 
         dist_iter(1) = sqrt(norm(Q'*Q,'fro')^2+n^2-2*norm(Q'*xt)^2);%%% compute distance to ground truth || Q*Q^T - xt*xt^T||_F
         step_init = 1; Qnew = Q; 
         
@@ -68,10 +67,9 @@ function [Q, iter, fval_collector, dist_iter] = manifold_GD(A, Q, xt, opts)
                 
                %% print and record information
                 if mod(iter,report_interval) == 0 && print == 1            
-                    fprintf('iternum: %2d, grad_norm: %8.4e, fval: %.3f, stepsize: %.4f \n', iter, norm(projgrad), fnew, stepsize) 
+                    fprintf('iternum: %2d, grad_norm: %8.4e, stepsize: %.4f \n', iter, norm(projgrad), stepsize) 
                 end
-
-                fval_collector(iter+1) = fnew; 
+                
                 dist_iter(iter+1) = norm(Q*Q'-xt*xt','fro'); 
  
                %% stopping criterion

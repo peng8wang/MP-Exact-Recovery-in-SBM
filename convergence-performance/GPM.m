@@ -1,6 +1,6 @@
 
 
-function [x, iter, fval_collector, dist_iter] = GPM(A, x, xt, opts)
+function [x, iter, dist_iter] = GPM(A, Q, xt, opts)
 
         %%  GPM for the regularized MLE
         % --- INPUT ---
@@ -33,39 +33,37 @@ function [x, iter, fval_collector, dist_iter] = GPM(A, x, xt, opts)
         else
             quiet = false;
         end
-        n = size(A, 1);
-        Ax = A*x; fval = -x'*Ax +  rho * (ones(n,1)'*x)^2;  %%% compute function value
-        fval_collector(1) = fval;  
+        n = size(A, 1); x = sqrt(n)*Q(:,2);
+        Ax = A*x;
         dist_iter(1) = sqrt(2*n^2 - 2*(x'*xt)^2); %%% compute distance to ground truth || x*x^T - xt*xt^T||_F
         fprintf(' ******************** Generalized Power Method *************************** \n')
         
         for iter = 1:maxiter
                  
                 xold = x;
+                
                %% Check fixed-point condition
                 x1 = x + Ax - rho*ones(n,1)'*x*ones(n,1);  x1(x1>=0) = 1; x1(x1<0) = -1; 
                 dist = norm(x - x1);
                 
-               %% update of PI + GPI               
+               %% update of GPM + PGD                
                 if iter <= floor(log(n)/log(log(n)))
-               %% power iteration (PI)
+               %% power iteration
                        x = Ax - rho*ones(n,1)'*x*ones(n,1); x = x/norm(x)*sqrt(n);      
                 else  
-               %% generalized power iteration (GPI)     
+               %% generalized power iteration     
                        x = Ax - rho*ones(n,1)'*x*ones(n,1);
                        x( x >= 0) = 1;                                      
                        x( x < 0) = -1;
                 end
                 
-                Ax = A*x; 
-                fval = -x'*Ax + rho * (ones(n,1)'*x)^2;                 
+                Ax = A*x;             
                 
                %% print and record information
                 if mod(iter, report_interval) == 0 && ~quiet            
-                    fprintf('iternum: %2d, suboptimality: %8.4e, fval: %.3f \n', iter, dist, fval) 
+                    fprintf('iternum: %2d, suboptimality: %8.4e\n', iter, dist) 
                 end
-                                
-                fval_collector(iter+1) = fval; 
+                               
                 dist_iter(iter+1) = sqrt(2*n^2 - 2*(x'*xt)^2);
                 
                %%  stopping criterion
